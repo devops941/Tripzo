@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   title: "Tripzo - Discover Your Next Adventure",
   description: "Curated travel packages, memorable vacations, and custom itineraries with Tripzo.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/api/favicon",
+    shortcut: "/api/favicon",
     apple: "/apple-icon.png",
   },
 };

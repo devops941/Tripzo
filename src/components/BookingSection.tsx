@@ -1,38 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Phone, Mail, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail } from 'lucide-react';
+import BookingForm from '@/components/BookingForm';
 
-interface BookingSectionProps {
-  phoneNumber?: string;
-  phoneLink?: string;
-  email?: string;
-}
 
-export default function BookingSection({
-  phoneNumber = "+91 9940882200",
-  phoneLink = "tel:+919940882200",
-  email = "mail@tripzo.in",
-}: BookingSectionProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    city: '',
-    email: '',
-    phone: '',
-    whatsapp: '',
-    destination: '',
-    travelDate: '',
-    peopleCount: '',
-    vacationType: '',
-  });
+export default function BookingSection() {
+  const [phoneNumber, setPhoneNumber] = useState('+91 9940882200');
+  const [phoneLink, setPhoneLink] = useState('tel:+919940882200');
+  const [email, setEmail] = useState('info@tripzo.com');
 
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.settings) {
+          if (data.settings.phoneNumber) setPhoneNumber(data.settings.phoneNumber);
+          if (data.settings.phoneLink) setPhoneLink(data.settings.phoneLink);
+          if (data.settings.email) setEmail(data.settings.email);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <section id="contact" className="relative w-full py-16 sm:py-24 bg-white overflow-hidden">
@@ -97,162 +87,7 @@ export default function BookingSection({
               <h3 className="text-2xl sm:text-3xl md:text-[34px] font-serif font-bold text-zinc-900 mb-6 text-center sm:text-left">
                 Book Your Dream Vacay Today!
               </h3>
-
-              {submitted ? (
-                <div className="py-12 px-4 text-center space-y-4 animate-in fade-in duration-300">
-                  <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                    <CheckCircle2 className="w-10 h-10" />
-                  </div>
-                  <h4 className="text-2xl font-bold font-serif text-zinc-900">
-                    Booking Request Received!
-                  </h4>
-                  <p className="text-sm text-zinc-600 max-w-md mx-auto">
-                    Thank you, <span className="font-semibold text-zinc-900">{formData.name || 'Traveler'}</span>! Our vacation planner will contact you at{' '}
-                    <span className="font-semibold text-zinc-900">{formData.phone || phoneNumber}</span> with your customized itinerary.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSubmitted(false)}
-                    className="mt-4 px-6 py-2.5 rounded-md bg-[#003DB8] text-white text-xs font-semibold hover:bg-[#002f8f] transition-colors"
-                  >
-                    Submit Another Query
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-3.5">
-                  {/* Name */}
-                  <div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Name *"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* City of Residence */}
-                  <div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="City of Residence *"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <input
-                      type="email"
-                      required
-                      placeholder="Email *"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* Phone Number with Country Flag / Indicator */}
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3.5 flex items-center gap-1.5 text-xs text-zinc-500 pointer-events-none">
-                      <span className="text-sm">🇮🇳</span>
-                      <span>▼</span>
-                    </span>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="Phone Number *"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full pl-14 pr-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* WhatsApp */}
-                  <div className="relative flex items-center">
-                    <span className="absolute left-3.5 flex items-center gap-1.5 text-xs text-zinc-500 pointer-events-none">
-                      <span className="text-sm">🇮🇳</span>
-                      <span>▼</span>
-                    </span>
-                    <input
-                      type="tel"
-                      placeholder="WhatsApp"
-                      value={formData.whatsapp}
-                      onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                      className="w-full pl-14 pr-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* Travel Destination */}
-                  <div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Travel Destination *"
-                      value={formData.destination}
-                      onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* Date of Travel */}
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="Date of Travel *"
-                      onFocus={(e) => (e.target.type = 'date')}
-                      onBlur={(e) => {
-                        if (!e.target.value) e.target.type = 'text';
-                      }}
-                      value={formData.travelDate}
-                      onChange={(e) => setFormData({ ...formData, travelDate: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* No. of People */}
-                  <div>
-                    <input
-                      type="text"
-                      placeholder="No. of People *"
-                      value={formData.peopleCount}
-                      onChange={(e) => setFormData({ ...formData, peopleCount: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-800 placeholder-zinc-400 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    />
-                  </div>
-
-                  {/* Vacation Type */}
-                  <div>
-                    <select
-                      value={formData.vacationType}
-                      onChange={(e) => setFormData({ ...formData, vacationType: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-md bg-white border border-zinc-300 text-zinc-700 text-sm focus:outline-none focus:border-[#003DB8] focus:ring-1 focus:ring-[#003DB8] transition-colors shadow-xs"
-                    >
-                      <option value="">Vacation Type *</option>
-                      <option value="Honeymoon">Honeymoon</option>
-                      <option value="Family Holiday">Family Holiday</option>
-                      <option value="Group Tour">Group Tour</option>
-                      <option value="Adventure / Trekking">Adventure / Trekking</option>
-                      <option value="Corporate Retreat">Corporate Retreat</option>
-                      <option value="Luxury Custom Package">Luxury Custom Package</option>
-                    </select>
-                  </div>
-
-                  {/* Submit Button (Matching Header Call Button Theme) */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="w-full py-3.5 rounded-2xl bg-[#003DB8] hover:bg-[#002f8f] active:scale-[0.99] border border-[#00D9FF]/80 text-white font-bold uppercase tracking-widest text-sm shadow-md hover:shadow-[#003DB8]/30 transition-all duration-300 cursor-pointer"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </form>
-              )}
+              <BookingForm contactPhone={phoneNumber} />
             </div>
           </div>
         </div>

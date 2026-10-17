@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  'mongodb+srv://devops_db_user:jcj8Mkf1GQKJ1ZGl@cluster0.uurxkmz.mongodb.net/tripzon?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI as string;
+if (!MONGODB_URI) throw new Error('MONGODB_URI environment variable is not set');
 
 interface MongooseCache {
   conn: typeof mongoose | null;

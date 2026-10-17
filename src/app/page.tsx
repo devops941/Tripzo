@@ -50,26 +50,23 @@ export default function Home() {
   const [slides, setSlides] = useState<SlideItem[]>(defaultSlides);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-
-  // Fetch dynamic slides from MongoDB
+  // Fetch dynamic carousel slides from MongoDB
   useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.settings?.slides?.length > 0) {
-          const mapped = data.settings.slides.map((s: any, idx: number) => ({
-            src: s.image,
+          const mapped = data.settings.slides.map((slide: any, idx: number) => ({
+            src: slide.image,
             alt: `Travel Destination ${idx + 1}`,
-            badge: s.badge || 'CURATED JOURNEYS',
-            headline: s.title || 'travel, worldclass',
-            subline: s.description || 'The real voyage of discovery consists not in seeking new landscapes.',
+            badge: slide.badge || 'CURATED JOURNEYS',
+            headline: slide.title || 'travel, worldclass',
+            subline: slide.description || 'The real voyage of discovery consists not in seeking new landscapes.',
           }));
           setSlides(mapped);
         }
       })
-      .catch(err => {
-        console.error('Failed to load dynamic slides from MongoDB:', err);
-      });
+      .catch(() => {});
   }, []);
 
   const prevSlide = useCallback(() => {

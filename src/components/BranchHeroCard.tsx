@@ -1,29 +1,19 @@
 'use client';
 
 import Image from 'next/image';
+import { useSettings } from '@/lib/useSettings';
 
-interface BranchHeroCardProps {
-  companyName?: string;
-  addressLines?: string[];
-  phoneNumber?: string;
-  phoneLink?: string;
-  email?: string;
-  imageSrc?: string;
-}
+export default function BranchHeroCard() {
+  const { phoneNumber, phoneLink, email } = useSettings();
 
-export default function BranchHeroCard({
-  companyName = "Tripzo Private Limited",
-  addressLines = [
+  const companyName = "Tripzo Private Limited";
+  const addressLines = [
     "Jayam Towers,",
     "HIG 38, Above DBS Bank,",
     "80 Feet Road, Annanagar,",
     "Madurai – 20",
-  ],
-  phoneNumber = "+91 9940882200",
-  phoneLink = "tel:+919940882200",
-  email = "mail@tripzo.in",
-  imageSrc = "/madurai_branch.jpg",
-}: BranchHeroCardProps) {
+  ];
+  const imageSrc = "/madurai_branch.jpg";
   return (
     <section className="w-full bg-white py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,7 +27,7 @@ export default function BranchHeroCard({
               unoptimized
               priority
               sizes="(max-width: 768px) 100vw, 70vw"
-              className="object-cover object-center grayscale hover:grayscale-0 transition-all duration-700"
+              className="object-cover object-center grayscale"
             />
             {/* Subtle contrast gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent md:hidden" />

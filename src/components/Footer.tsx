@@ -1,37 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useSettings } from '@/lib/useSettings';
 
-interface FooterProps {
-  phoneNumber?: string;
-  phoneLink?: string;
-  email?: string;
-}
+export default function Footer() {
+  const { phoneNumber, phoneLink, email, branches } = useSettings();
 
-export default function Footer({
-  phoneNumber = "+91 9940882200",
-  phoneLink = "tel:+919940882200",
-  email = "mail@tripzo.in",
-}: FooterProps) {
-  const branchesLeft = [
-    'Mumbai',
-    'Hyderabad',
-    'Bangalore',
-    'Chennai',
-    'Coimbatore',
-    'Erode',
-    'Madurai',
-  ];
-
-  const branchesRight = [
-    'Trichy',
-    'Salem',
-    'Kochi',
-    'Vellore',
-    'Pondicherry',
-    'Nagercoil',
-    'Kanyakumari',
-  ];
+  const mid = Math.ceil(branches.length / 2);
+  const branchesLeft = branches.slice(0, mid);
+  const branchesRight = branches.slice(mid);
 
   return (
     <footer className="w-full bg-[#1A1A1A] text-zinc-300">
@@ -107,22 +84,28 @@ export default function Footer({
               <div className="w-12 h-0.5 bg-white/20 mt-2 mb-4" />
 
               {/* 2-column branches list */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:text-[13px] text-zinc-400">
-                <div className="space-y-1.5">
-                  {branchesLeft.map((city) => (
-                    <p key={city} className="hover:text-white transition-colors cursor-pointer">
-                      {city}
-                    </p>
-                  ))}
+              {branches.length === 0 ? (
+                <p className="text-xs text-zinc-500">No branches added yet.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs sm:text-[13px] text-zinc-400">
+                  <div className="space-y-1.5">
+                    {branchesLeft.map((b) => (
+                      <Link key={b.cityName} href={`/contact?city=${encodeURIComponent(b.cityName)}`}
+                        className="block hover:text-white transition-colors">
+                        {b.cityName}
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5">
+                    {branchesRight.map((b) => (
+                      <Link key={b.cityName} href={`/contact?city=${encodeURIComponent(b.cityName)}`}
+                        className="block hover:text-white transition-colors">
+                        {b.cityName}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  {branchesRight.map((city) => (
-                    <p key={city} className="hover:text-white transition-colors cursor-pointer">
-                      {city}
-                    </p>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Follow Us Block */}
@@ -205,7 +188,7 @@ export default function Footer({
       {/* Floating Enquire Now Button & WhatsApp Icon (Matching Header Theme) */}
       <div className="fixed bottom-6 right-6 z-40 hidden sm:block">
         <a
-          href="#contact"
+          href="/contact#contact"
           className="px-6 py-3 rounded-2xl bg-[#003DB8] hover:bg-[#002f8f] border border-[#00D9FF]/80 text-white font-bold uppercase tracking-wider text-xs shadow-xl hover:shadow-[#003DB8]/40 transition-all duration-300 active:scale-95 inline-block"
         >
           Enquire Now

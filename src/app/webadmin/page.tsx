@@ -3,21 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  Compass,
-  Users,
-  TrendingUp,
-  FileText,
-  LogOut,
-  ArrowRight,
-  ShieldCheck,
-} from 'lucide-react';
-import SiteSettingsModule from '@/components/SiteSettingsModule';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import AdminDashboardLayout from '@/components/AdminDashboardLayout';
 
 export default function WebAdminPage() {
@@ -26,19 +12,41 @@ export default function WebAdminPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('tripzo_admin') === 'true';
+    }
+    return false;
+  });
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage('');
-    setIsLoading(true);
 
+    let valid = true;
+    if (!email.trim()) {
+      setEmailError('Username or email is required');
+      valid = false;
+    } else {
+      setEmailError('');
+    }
+    if (!password) {
+      setPasswordError('Password is required');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+    if (!valid) return;
+
+    setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      // Demo authentication logic
       const validEmail = email.trim().toLowerCase();
       if ((validEmail === 'admin@tripzo.com' || validEmail === 'admin') && password === 'admin123') {
         setIsLoggedIn(true);
+        sessionStorage.setItem('tripzo_admin', 'true');
       } else {
         setErrorMessage('Invalid credentials. Use admin@tripzo.com / admin123');
       }
@@ -47,12 +55,13 @@ export default function WebAdminPage() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    sessionStorage.removeItem('tripzo_admin');
     setPassword('');
   };
 
   // If logged in, show the AdminKit PRO Style Analytics Dashboard
   if (isLoggedIn) {
-    return <AdminDashboardLayout />;
+    return <AdminDashboardLayout onLogout={handleLogout} />;
   }
 
   // 50/50 Split Screen Layout matching Sun Sea ERP style
@@ -126,7 +135,7 @@ export default function WebAdminPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} noValidate className="space-y-5">
             {/* Username or Email */}
             <div className="space-y-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-700 uppercase tracking-wider">
@@ -137,11 +146,13 @@ export default function WebAdminPage() {
               <input
                 type="text"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
                 placeholder="Enter username or email"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-zinc-200 text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E56F0] focus:border-transparent transition-all shadow-2xs"
+                className={`w-full px-4 py-3 rounded-lg border text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all shadow-2xs ${
+                  emailError ? 'border-rose-400 focus:ring-rose-300' : 'border-zinc-200 focus:ring-[#1E56F0]'
+                }`}
               />
+              {emailError && <p className="text-[11px] text-rose-500">{emailError}</p>}
             </div>
 
             {/* Password */}
@@ -155,10 +166,11 @@ export default function WebAdminPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => { setPassword(e.target.value); if (passwordError) setPasswordError(''); }}
                   placeholder="Enter your password"
-                  required
-                  className="w-full pl-4 pr-11 py-3 rounded-lg border border-zinc-200 text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E56F0] focus:border-transparent transition-all shadow-2xs"
+                  className={`w-full pl-4 pr-11 py-3 rounded-lg border text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all shadow-2xs ${
+                    passwordError ? 'border-rose-400 focus:ring-rose-300' : 'border-zinc-200 focus:ring-[#1E56F0]'
+                  }`}
                 />
                 <button
                   type="button"
@@ -168,6 +180,7 @@ export default function WebAdminPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {passwordError && <p className="text-[11px] text-rose-500">{passwordError}</p>}
             </div>
 
 

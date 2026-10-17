@@ -1,41 +1,95 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   LayoutDashboard,
-  Compass,
-  ShoppingCart,
-  Users,
-  Settings,
-  Calendar as CalendarIcon,
-  Search,
-  Bell,
-  MessageSquare,
-  Maximize2,
   ChevronDown,
-  TrendingUp,
-  TrendingDown,
-  Truck,
-  DollarSign,
   Plus,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
   LogOut,
-  Globe,
   Sliders,
   CheckCircle2,
   Menu,
-  X,
+  Package,
+  Globe,
+  MapPin,
+  Inbox,
+  Phone,
+  Mail,
+  CalendarDays,
+  Users,
 } from 'lucide-react';
 import SiteSettingsModule from '@/components/SiteSettingsModule';
+import PackagesModule from '@/components/PackagesModule';
 
-export default function AdminDashboardLayout() {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'settings'>('analytics');
+export default function AdminDashboardLayout({ onLogout }: { onLogout?: () => void }) {
+  const [activeTab, setActiveTab] = useState<'analytics' | 'settings' | 'packages' | 'enquiries'>('analytics');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [stats, setStats] = useState({ destinations: 0, packages: 0, active: 0, branches: 0 });
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [loadingEnquiries, setLoadingEnquiries] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== 'analytics') return;
+
+    let cancelled = false;
+    setLoadingAnalytics(true);
+
+    async function fetchData() {
+      try {
+        const [destRes, settingsRes] = await Promise.all([
+          fetch('/api/destinations'),
+          fetch('/api/settings'),
+        ]);
+
+        const destJson = destRes.ok ? await destRes.json() : { destinations: [] };
+        const settingsJson = settingsRes.ok ? await settingsRes.json() : { branches: [] };
+
+        if (cancelled) return;
+
+        const dests: any[] = destJson.destinations ?? [];
+        const totalPackages = dests.reduce(
+          (acc: number, d: any) => acc + (Array.isArray(d.packages) ? d.packages.length : 0),
+          0
+        );
+        const activeCount = dests.filter((d: any) => d.isActive === true).length;
+        const branchCount = Array.isArray(settingsJson.branches) ? settingsJson.branches.length : 0;
+
+        setDestinations(dests);
+        setStats({
+          destinations: dests.length,
+          packages: totalPackages,
+          active: activeCount,
+          branches: branchCount,
+        });
+      } catch {
+        // silently fail — stats stay at 0
+      } finally {
+        if (!cancelled) setLoadingAnalytics(false);
+      }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'enquiries') return;
+    let cancelled = false;
+    setLoadingEnquiries(true);
+    fetch('/api/enquiries')
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setEnquiries(data.enquiries ?? []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingEnquiries(false); });
+    return () => { cancelled = true; };
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-[#F5F7FB] flex text-zinc-800 font-sans antialiased">
@@ -81,112 +135,61 @@ export default function AdminDashboardLayout() {
         )}
 
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 py-2 space-y-6 overflow-y-auto text-xs font-medium">
-          {/* Group: Pages */}
-          <div className="space-y-1">
-            {sidebarOpen && (
-              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400/80 mb-2">
-                Pages
-              </p>
-            )}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto text-xs font-medium">
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              activeTab === 'analytics'
+                ? 'text-white bg-[#003DB8] font-semibold shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 text-[#00D9FF] flex-shrink-0" />
+            {sidebarOpen && <span>Dashboard</span>}
+          </button>
 
-            {/* Dashboards dropdown */}
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-between px-3 py-2.5 rounded-lg text-white font-semibold cursor-pointer hover:bg-white/5 transition-colors">
-                <div className="flex items-center gap-3">
-                  <LayoutDashboard className="w-4 h-4 text-[#00D9FF]" />
-                  {sidebarOpen && <span>Dashboards</span>}
-                </div>
-                {sidebarOpen && <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
-              </div>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              activeTab === 'settings'
+                ? 'text-white bg-[#003DB8] font-semibold shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            {sidebarOpen && <span>Settings &amp; Carousel</span>}
+          </button>
 
-              {/* Sub items */}
-              {sidebarOpen && (
-                <div className="pl-9 pr-2 space-y-1">
-                  <button
-                    onClick={() => setActiveTab('analytics')}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                      activeTab === 'analytics'
-                        ? 'text-white bg-[#003DB8] font-bold shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    &rarr; Analytics
-                  </button>
+          <button
+            onClick={() => setActiveTab('packages')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              activeTab === 'packages'
+                ? 'text-white bg-[#003DB8] font-semibold shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Package className="w-4 h-4 text-sky-400 flex-shrink-0" />
+            {sidebarOpen && <span>Tour Packages</span>}
+          </button>
 
-                  <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-between ${
-                      activeTab === 'settings'
-                        ? 'text-white bg-[#003DB8] font-bold shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <span>&rarr; Site Settings</span>
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded font-bold">
-                      Live
-                    </span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Other Sidebar Items */}
-            <div className="space-y-0.5 pt-2">
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                  activeTab === 'settings'
-                    ? 'text-white bg-white/10'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Sliders className="w-4 h-4 text-emerald-400" />
-                {sidebarOpen && <span>Settings &amp; Carousel</span>}
-              </button>
-
-              <Link
-                href="/packages"
-                target="_blank"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <Compass className="w-4 h-4 text-amber-400" />
-                {sidebarOpen && <span>Tour Packages</span>}
-              </Link>
-
-              <Link
-                href="/contact"
-                target="_blank"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-              >
-                <Users className="w-4 h-4 text-purple-400" />
-                {sidebarOpen && <span>Customer Leads</span>}
-              </Link>
-            </div>
-          </div>
-
-          {/* Group: Public Link */}
-          <div className="pt-2 border-t border-white/5">
-            {sidebarOpen && (
-              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400/80 mb-2">
-                Live Website
-              </p>
-            )}
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:text-[#00D9FF] hover:bg-white/5 transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              {sidebarOpen && <span>View Main Site &rarr;</span>}
-            </Link>
-          </div>
+          <button
+            onClick={() => setActiveTab('enquiries')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+              activeTab === 'enquiries'
+                ? 'text-white bg-[#003DB8] font-semibold shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Inbox className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            {sidebarOpen && <span>Enquiries</span>}
+          </button>
         </nav>
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-white/5">
           <Link
             href="/"
+            onClick={onLogout}
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 transition-colors"
           >
             <LogOut className="w-4 h-4" />
@@ -199,55 +202,19 @@ export default function AdminDashboardLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navbar */}
         <header className="h-16 bg-white border-b border-zinc-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
-          {/* Left search & menu toggle */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 text-zinc-500 hover:text-zinc-800 rounded-lg hover:bg-zinc-100 transition-colors"
-              title="Toggle Sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+          {/* Left: sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 text-zinc-500 hover:text-zinc-800 rounded-lg hover:bg-zinc-100 transition-colors"
+            title="Toggle Sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
 
-            <div className="relative hidden md:block">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-64 pl-9 pr-4 py-1.5 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#003DB8] focus:bg-white transition-all"
-              />
-              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
-
-            <div className="hidden lg:flex items-center gap-4 text-xs font-medium text-zinc-500 pl-2">
-              <span className="hover:text-zinc-900 cursor-pointer">Mega Menu</span>
-              <span className="hover:text-zinc-900 cursor-pointer flex items-center gap-1">
-                Resources <ChevronDown className="w-3 h-3" />
-              </span>
-            </div>
-          </div>
-
-          {/* Right utility icons */}
-          <div className="flex items-center gap-3">
-            <button className="relative p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#003DB8]" />
-            </button>
-
-            <button className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors">
-              <MessageSquare className="w-4 h-4" />
-            </button>
-
-            <button className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors hidden sm:block">
-              <Maximize2 className="w-4 h-4" />
-            </button>
-
-            <div className="h-6 w-px bg-zinc-200 mx-1" />
-
-            {/* User Avatar */}
-            <div className="flex items-center gap-2 pl-1 cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#003DB8] to-[#00D9FF] flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                A
-              </div>
+          {/* Right: User Avatar */}
+          <div className="flex items-center gap-2 cursor-pointer">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#003DB8] to-[#00D9FF] flex items-center justify-center text-white font-bold text-xs shadow-xs">
+              A
             </div>
           </div>
         </header>
@@ -258,12 +225,16 @@ export default function AdminDashboardLayout() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-                {activeTab === 'analytics' ? 'Analytics Dashboard' : 'Site Settings & Dynamic Carousel'}
+                {activeTab === 'analytics' ? 'Analytics Dashboard'
+                  : activeTab === 'settings' ? 'Site Settings & Dynamic Carousel'
+                  : activeTab === 'packages' ? 'Destinations & Tour Packages'
+                  : 'Customer Enquiries'}
               </h1>
               <p className="text-xs text-zinc-500 mt-0.5">
-                {activeTab === 'analytics'
-                  ? 'Real-time overview of bookings, leads, visitors, and revenue.'
-                  : 'Manage live contact info and upload hero carousel slides connected directly to MongoDB.'}
+                {activeTab === 'analytics' ? 'Live overview of your destinations, packages, and branch offices.'
+                  : activeTab === 'settings' ? 'Manage live contact info and upload hero carousel slides connected directly to MongoDB.'
+                  : activeTab === 'packages' ? 'Add destinations and trip packages that appear live on the public packages page.'
+                  : 'All booking enquiries submitted through the website contact and package pages.'}
               </p>
             </div>
 
@@ -286,337 +257,356 @@ export default function AdminDashboardLayout() {
             </div>
           </div>
 
-          {/* Conditional View: Analytics Dashboard OR Settings Module */}
+          {/* Conditional View */}
           {activeTab === 'settings' ? (
             <SiteSettingsModule />
-          ) : (
-            <div className="space-y-8">
-              {/* Row 1: 4 Metric Cards (Sales, Earnings, Visitors, Orders) + Chart */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* 4 Metric Cards (5 Cols) */}
-                <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {/* Sales */}
-                  <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-500">Sales</span>
-                      <div className="w-9 h-9 rounded-full bg-blue-50 text-[#003DB8] flex items-center justify-center">
-                        <Truck className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">2.382</div>
-                    <div className="flex items-center gap-1 text-[11px] text-rose-500 font-medium">
-                      <span className="bg-rose-50 px-1.5 py-0.5 rounded font-bold">-3.65%</span>
-                      <span className="text-zinc-400">Since last week</span>
-                    </div>
-                  </div>
-
-                  {/* Earnings */}
-                  <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-500">Earnings</span>
-                      <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <DollarSign className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">$21.300</div>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                      <span className="bg-emerald-50 px-1.5 py-0.5 rounded font-bold">+6.65%</span>
-                      <span className="text-zinc-400">Since last week</span>
-                    </div>
-                  </div>
-
-                  {/* Visitors */}
-                  <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-500">Visitors</span>
-                      <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <Users className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">14.212</div>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                      <span className="bg-emerald-50 px-1.5 py-0.5 rounded font-bold">+5.25%</span>
-                      <span className="text-zinc-400">Since last week</span>
-                    </div>
-                  </div>
-
-                  {/* Orders */}
-                  <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-zinc-500">Orders</span>
-                      <div className="w-9 h-9 rounded-full bg-sky-50 text-[#00D9FF] flex items-center justify-center">
-                        <ShoppingCart className="w-4 h-4 text-[#003DB8]" />
-                      </div>
-                    </div>
-                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">64</div>
-                    <div className="flex items-center gap-1 text-[11px] text-rose-500 font-medium">
-                      <span className="bg-rose-50 px-1.5 py-0.5 rounded font-bold">-2.25%</span>
-                      <span className="text-zinc-400">Since last week</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Movement Chart (7 Cols) */}
-                <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-bold text-zinc-900">Recent Movement</h2>
-                      <p className="text-[11px] text-zinc-400">Monthly booking trend</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select className="text-xs border border-zinc-200 rounded-lg px-2.5 py-1 text-zinc-600 bg-white">
-                        <option>Jan - Dec 2026</option>
-                        <option>2025</option>
-                      </select>
-                      <button className="p-1 text-zinc-400 hover:text-zinc-700">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* SVG Line Curve Chart */}
-                  <div className="relative w-full h-56 pt-2">
-                    <svg viewBox="0 0 700 220" className="w-full h-full overflow-visible">
-                      <defs>
-                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#003DB8" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#003DB8" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Horizontal Grid lines */}
-                      <line x1="40" y1="30" x2="680" y2="30" stroke="#f1f5f9" strokeWidth="1" />
-                      <text x="10" y="34" fontSize="10" fill="#94a3b8">4000</text>
-
-                      <line x1="40" y1="85" x2="680" y2="85" stroke="#f1f5f9" strokeWidth="1" />
-                      <text x="10" y="89" fontSize="10" fill="#94a3b8">3000</text>
-
-                      <line x1="40" y1="140" x2="680" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-                      <text x="10" y="144" fontSize="10" fill="#94a3b8">2000</text>
-
-                      <line x1="40" y1="195" x2="680" y2="195" stroke="#f1f5f9" strokeWidth="1" />
-                      <text x="10" y="199" fontSize="10" fill="#94a3b8">1000</text>
-
-                      {/* Area Fill */}
-                      <path
-                        d="M 50 145 C 100 170, 150 165, 200 150 C 250 135, 300 175, 350 160 C 400 145, 450 120, 500 115 C 550 110, 600 55, 630 65 C 650 72, 665 60, 680 70 L 680 200 L 50 200 Z"
-                        fill="url(#chartGrad)"
-                      />
-
-                      {/* Smooth Spline Line */}
-                      <path
-                        d="M 50 145 C 100 170, 150 165, 200 150 C 250 135, 300 175, 350 160 C 400 145, 450 120, 500 115 C 550 110, 600 55, 630 65 C 650 72, 665 60, 680 70"
-                        fill="none"
-                        stroke="#003DB8"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                      />
-
-                      {/* Highlight Dots */}
-                      <circle cx="50" cy="145" r="4.5" fill="#003DB8" stroke="#fff" strokeWidth="2" />
-                      <circle cx="350" cy="160" r="4.5" fill="#003DB8" stroke="#fff" strokeWidth="2" />
-                      <circle cx="500" cy="115" r="4.5" fill="#003DB8" stroke="#fff" strokeWidth="2" />
-                      <circle cx="630" cy="65" r="5" fill="#00D9FF" stroke="#003DB8" strokeWidth="2.5" />
-                    </svg>
-
-                    {/* Months footer */}
-                    <div className="flex justify-between text-[11px] text-zinc-400 pt-2 px-6">
-                      <span>Jan</span>
-                      <span>Feb</span>
-                      <span>Mar</span>
-                      <span>Apr</span>
-                      <span>May</span>
-                      <span>Jun</span>
-                      <span>Jul</span>
-                      <span>Aug</span>
-                      <span>Sep</span>
-                      <span>Oct</span>
-                      <span>Nov</span>
-                      <span>Dec</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: 3 Bottom Widgets (Calendar, Real-Time Map, Browser/Lead Donut) */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                {/* 1. Calendar Widget (4 Cols) */}
-                <div className="md:col-span-4 bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-zinc-900">Calendar</h3>
-                    <MoreHorizontal className="w-4 h-4 text-zinc-400" />
-                  </div>
-
-                  {/* Month header */}
-                  <div className="flex items-center justify-between px-2 pt-1">
-                    <ChevronLeft className="w-4 h-4 text-zinc-400 cursor-pointer" />
-                    <span className="text-xs font-bold text-zinc-800">October 2026</span>
-                    <ChevronRight className="w-4 h-4 text-zinc-400 cursor-pointer" />
-                  </div>
-
-                  {/* Mini Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-y-2 text-center text-xs">
-                    <span className="text-[10px] font-bold text-zinc-400">Sun</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Mon</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Tue</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Wed</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Thu</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Fri</span>
-                    <span className="text-[10px] font-bold text-zinc-400">Sat</span>
-
-                    {/* Days */}
-                    <span className="text-zinc-300">28</span>
-                    <span className="text-zinc-300">29</span>
-                    <span className="text-zinc-300">30</span>
-                    <span className="text-zinc-700">1</span>
-                    <span className="text-zinc-700">2</span>
-                    <span className="text-zinc-700">3</span>
-                    <span className="text-zinc-700">4</span>
-                    <span className="text-zinc-700">5</span>
-                    <span className="text-zinc-700">6</span>
-                    <span className="text-zinc-700">7</span>
-                    <span className="text-zinc-700">8</span>
-                    <span className="text-zinc-700">9</span>
-                    <span className="text-zinc-700">10</span>
-                    <span className="text-zinc-700">11</span>
-                    <span className="text-zinc-700">12</span>
-                    <span className="text-zinc-700">13</span>
-                    {/* Active Day */}
-                    <span className="w-7 h-7 mx-auto rounded-full bg-[#003DB8] text-white flex items-center justify-center font-bold shadow-xs">
-                      14
+          ) : activeTab === 'packages' ? (
+            <PackagesModule />
+          ) : activeTab === 'enquiries' ? (
+            <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
+              <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Inbox className="w-4 h-4 text-rose-400" />
+                  <h2 className="text-sm font-bold text-zinc-900">All Enquiries</h2>
+                  {!loadingEnquiries && (
+                    <span className="ml-1 text-[11px] bg-rose-50 text-rose-600 font-bold px-2 py-0.5 rounded-full">
+                      {enquiries.length}
                     </span>
-                    <span className="text-zinc-700">15</span>
-                    <span className="text-zinc-700">16</span>
-                    <span className="text-zinc-700">17</span>
-                    <span className="text-zinc-700">18</span>
-                  </div>
-                </div>
-
-                {/* 2. Real-Time Global Visitors Map (4 Cols) */}
-                <div className="md:col-span-4 bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-zinc-900">Real-Time Travellers</h3>
-                    <MoreHorizontal className="w-4 h-4 text-zinc-400" />
-                  </div>
-
-                  <div className="relative w-full h-44 bg-zinc-50 rounded-xl overflow-hidden flex items-center justify-center border border-zinc-100">
-                    {/* Stylized World Map Vector */}
-                    <svg viewBox="0 0 400 200" className="w-full h-full opacity-40 fill-zinc-400">
-                      <path d="M 50,60 Q 80,40 110,65 Q 120,95 90,120 Q 60,110 50,60 Z" />
-                      <path d="M 120,130 Q 150,140 140,180 Q 110,185 105,140 Z" />
-                      <path d="M 200,50 Q 250,45 280,70 Q 270,110 230,110 Q 190,90 200,50 Z" />
-                      <path d="M 230,120 Q 260,120 270,170 Q 230,180 220,130 Z" />
-                      <path d="M 310,130 Q 360,120 370,160 Q 330,180 310,130 Z" />
-                    </svg>
-
-                    {/* Glowing Live Location Pins */}
-                    <div className="absolute top-16 left-28 w-3 h-3 rounded-full bg-[#003DB8] animate-ping" />
-                    <div className="absolute top-16 left-28 w-3 h-3 rounded-full bg-[#003DB8] border-2 border-white shadow" />
-
-                    <div className="absolute top-24 left-56 w-3 h-3 rounded-full bg-[#00D9FF] animate-ping" />
-                    <div className="absolute top-24 left-56 w-3 h-3 rounded-full bg-[#00D9FF] border-2 border-white shadow" />
-
-                    <div className="absolute top-20 right-28 w-3 h-3 rounded-full bg-[#003DB8] animate-ping" />
-                    <div className="absolute top-20 right-28 w-3 h-3 rounded-full bg-[#003DB8] border-2 border-white shadow" />
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-zinc-500 pt-1">
-                    <span>Active Sessions: <strong className="text-zinc-800">184 Live</strong></span>
-                    <span className="text-emerald-600 font-semibold">&bull; Online</span>
-                  </div>
-                </div>
-
-                {/* 3. Browser Usage / Booking Channel Donut (4 Cols) */}
-                <div className="md:col-span-4 bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-zinc-900">Traffic Source</h3>
-                    <MoreHorizontal className="w-4 h-4 text-zinc-400" />
-                  </div>
-
-                  {/* Donut SVG */}
-                  <div className="flex items-center justify-center py-2">
-                    <div className="relative w-36 h-36">
-                      <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                        {/* Chrome / Direct 65% (Blue) */}
-                        <path
-                          className="text-[#003DB8]"
-                          strokeDasharray="65, 100"
-                          strokeWidth="4"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Safari / Mobile 20% (Cyan) */}
-                        <path
-                          className="text-[#00D9FF]"
-                          strokeDasharray="20, 100"
-                          strokeDashoffset="-65"
-                          strokeWidth="4"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        {/* Other 15% (Amber) */}
-                        <path
-                          className="text-amber-400"
-                          strokeDasharray="15, 100"
-                          strokeDashoffset="-85"
-                          strokeWidth="4"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className="text-xs text-zinc-400 leading-none">Total</span>
-                        <span className="text-base font-extrabold text-zinc-900">4,306</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Legend list */}
-                  <div className="space-y-1.5 text-xs text-zinc-600">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#003DB8]" />
-                        Chrome / Desktop
-                      </span>
-                      <strong className="text-zinc-800">4,306 (65%)</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#00D9FF]" />
-                        Mobile Safari
-                      </span>
-                      <strong className="text-zinc-800">1,280 (20%)</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                        Direct / Other
-                      </span>
-                      <strong className="text-zinc-800">920 (15%)</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom: Embedded Live Settings Quick Access Card */}
-              <div className="bg-gradient-to-r from-blue-50 via-white to-sky-50 border border-blue-200/70 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
-                <div>
-                  <h3 className="text-base font-bold text-zinc-900">
-                    MongoDB Live Site Settings &amp; Hero Carousel
-                  </h3>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    Need to upload new photos to your homepage or update the customer contact details?
-                  </p>
+                  )}
                 </div>
                 <button
-                  onClick={() => setActiveTab('settings')}
-                  className="px-5 py-2.5 rounded-xl bg-[#003DB8] hover:bg-[#002f8f] active:scale-95 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                  onClick={() => { setActiveTab('analytics'); setTimeout(() => setActiveTab('enquiries'), 10); }}
+                  className="text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
                 >
-                  Configure Site Settings &rarr;
+                  Refresh
                 </button>
+              </div>
+
+              {loadingEnquiries ? (
+                <div className="divide-y divide-zinc-100">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="flex gap-4 px-6 py-4">
+                      <div className="w-9 h-9 rounded-full bg-zinc-100 animate-pulse flex-shrink-0" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-3 w-32 bg-zinc-100 animate-pulse rounded" />
+                        <div className="h-2.5 w-56 bg-zinc-100 animate-pulse rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : enquiries.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                  <Inbox className="w-10 h-10 text-zinc-300 mb-3" />
+                  <p className="text-sm font-semibold text-zinc-500">No enquiries yet</p>
+                  <p className="text-xs text-zinc-400 mt-1">Submissions from the contact and package pages will appear here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-zinc-50 text-left">
+                        <th className="px-6 py-3 font-semibold text-zinc-500">Name</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">Contact</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">Destination</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">Travel Date</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">People</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">Type</th>
+                        <th className="px-4 py-3 font-semibold text-zinc-500">Received</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {enquiries.map((enq: any) => (
+                        <tr key={enq._id} className="hover:bg-zinc-50/60 transition-colors">
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#003DB8] to-[#00D9FF] flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0">
+                                {enq.name?.[0]?.toUpperCase() ?? '?'}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-zinc-900">{enq.name}</p>
+                                <p className="text-zinc-400">{enq.city}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1 text-zinc-600">
+                                <Phone className="w-3 h-3 text-zinc-400" />
+                                <span>{enq.phone || '—'}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-zinc-400">
+                                <Mail className="w-3 h-3" />
+                                <span className="truncate max-w-[160px]">{enq.email || '—'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-zinc-800">{enq.destination || '—'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1 text-zinc-600">
+                              <CalendarDays className="w-3 h-3 text-zinc-400" />
+                              <span>{enq.travelDate || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center gap-1 text-zinc-600">
+                              <Users className="w-3 h-3 text-zinc-400" />
+                              <span>{enq.peopleCount || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {enq.vacationType ? (
+                              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold text-[11px]">
+                                {enq.vacationType}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
+                            {enq.createdAt
+                              ? new Date(enq.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                              : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Row 1: 4 Live Stat Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+                {/* Destinations */}
+                <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-500">Destinations</span>
+                    <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center">
+                      <Globe className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {loadingAnalytics ? (
+                    <div className="h-8 w-16 bg-zinc-100 animate-pulse rounded" />
+                  ) : (
+                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">{stats.destinations}</div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded font-bold">MongoDB Live</span>
+                  </div>
+                </div>
+
+                {/* Tour Packages */}
+                <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-500">Tour Packages</span>
+                    <div className="w-9 h-9 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center">
+                      <Package className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {loadingAnalytics ? (
+                    <div className="h-8 w-16 bg-zinc-100 animate-pulse rounded" />
+                  ) : (
+                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">{stats.packages}</div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] bg-sky-50 text-sky-600 px-2 py-0.5 rounded font-bold">MongoDB Live</span>
+                  </div>
+                </div>
+
+                {/* Active Listings */}
+                <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-500">Active Listings</span>
+                    <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {loadingAnalytics ? (
+                    <div className="h-8 w-16 bg-zinc-100 animate-pulse rounded" />
+                  ) : (
+                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">{stats.active}</div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded font-bold">MongoDB Live</span>
+                  </div>
+                </div>
+
+                {/* Branch Offices */}
+                <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-500">Branch Offices</span>
+                    <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                  </div>
+                  {loadingAnalytics ? (
+                    <div className="h-8 w-16 bg-zinc-100 animate-pulse rounded" />
+                  ) : (
+                    <div className="text-2xl font-bold text-zinc-900 tracking-tight">{stats.branches}</div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded font-bold">MongoDB Live</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Destinations Table */}
+              <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-2xs overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-zinc-100">
+                  <h2 className="text-sm font-bold text-zinc-900">All Destinations</h2>
+                  <button
+                    onClick={() => setActiveTab('packages')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#003DB8] hover:bg-[#002f8f] active:scale-95 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Destination
+                  </button>
+                </div>
+
+                {loadingAnalytics ? (
+                  /* Loading skeleton */
+                  <div className="divide-y divide-zinc-100">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-4 px-6 py-4">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-100 animate-pulse flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 w-32 bg-zinc-100 animate-pulse rounded" />
+                          <div className="h-2.5 w-48 bg-zinc-100 animate-pulse rounded" />
+                        </div>
+                        <div className="h-3 w-10 bg-zinc-100 animate-pulse rounded" />
+                        <div className="h-3 w-10 bg-zinc-100 animate-pulse rounded" />
+                        <div className="h-5 w-16 bg-zinc-100 animate-pulse rounded-full" />
+                        <div className="h-7 w-12 bg-zinc-100 animate-pulse rounded-lg" />
+                      </div>
+                    ))}
+                  </div>
+                ) : destinations.length === 0 ? (
+                  /* Empty state */
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <Globe className="w-10 h-10 text-zinc-300 mb-3" />
+                    <p className="text-sm font-semibold text-zinc-500">No destinations yet</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Click &quot;Add Destination&quot; above to create your first tour destination.
+                    </p>
+                  </div>
+                ) : (
+                  /* Destinations table */
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-zinc-50 text-left">
+                          <th className="px-6 py-3 font-semibold text-zinc-500 w-12" />
+                          <th className="px-4 py-3 font-semibold text-zinc-500">Name</th>
+                          <th className="px-4 py-3 font-semibold text-zinc-500 text-center">Packages</th>
+                          <th className="px-4 py-3 font-semibold text-zinc-500 text-center">FAQs</th>
+                          <th className="px-4 py-3 font-semibold text-zinc-500">Status</th>
+                          <th className="px-4 py-3 font-semibold text-zinc-500" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100">
+                        {destinations.map((dest: any) => (
+                          <tr key={dest._id} className="hover:bg-zinc-50/60 transition-colors">
+                            {/* Hero image */}
+                            <td className="px-6 py-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0 relative">
+                                {dest.heroImage ? (
+                                  <Image
+                                    src={dest.heroImage}
+                                    alt={dest.name ?? 'destination'}
+                                    fill
+                                    className="object-cover"
+                                    sizes="40px"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Globe className="w-4 h-4 text-zinc-300" />
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            {/* Name + tagline */}
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-zinc-900 truncate max-w-[180px]">{dest.name}</p>
+                              {dest.tagline && (
+                                <p className="text-zinc-400 truncate max-w-[220px] mt-0.5">{dest.tagline}</p>
+                              )}
+                            </td>
+                            {/* Packages count */}
+                            <td className="px-4 py-3 text-center font-semibold text-zinc-700">
+                              {Array.isArray(dest.packages) ? dest.packages.length : 0}
+                            </td>
+                            {/* FAQs count */}
+                            <td className="px-4 py-3 text-center font-semibold text-zinc-700">
+                              {Array.isArray(dest.faqs) ? dest.faqs.length : 0}
+                            </td>
+                            {/* Status badge */}
+                            <td className="px-4 py-3">
+                              {dest.isActive ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-[11px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-semibold text-[11px]">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 inline-block" />
+                                  Inactive
+                                </span>
+                              )}
+                            </td>
+                            {/* Edit button */}
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => setActiveTab('packages')}
+                                className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-semibold transition-colors text-[11px] cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Row 3: Quick Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                {/* Configure Settings */}
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs text-left hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-bold text-zinc-900">Configure Settings</p>
+                  <p className="text-xs text-zinc-400 mt-1">Update contact info, carousel images, and branch details.</p>
+                </button>
+
+                {/* Manage Packages */}
+                <button
+                  onClick={() => setActiveTab('packages')}
+                  className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs text-left hover:shadow-md hover:border-sky-200 transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3 group-hover:bg-sky-100 transition-colors">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-bold text-zinc-900">Manage Packages</p>
+                  <p className="text-xs text-zinc-400 mt-1">Add or edit destinations, tour packages, and FAQs.</p>
+                </button>
+
+                {/* View Live Site */}
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs text-left hover:shadow-md hover:border-indigo-200 transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:bg-indigo-100 transition-colors">
+                    <ExternalLink className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-bold text-zinc-900">View Live Site</p>
+                  <p className="text-xs text-zinc-400 mt-1">Open the public-facing Tripzo portal in a new tab.</p>
+                </Link>
               </div>
             </div>
           )}
